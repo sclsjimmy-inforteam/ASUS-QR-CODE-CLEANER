@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QR Serial Space Normalizer</title>
+  <title>ASUS QR code Cleaner</title>
   <script src="https://unpkg.com/html5-qrcode" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <style>
@@ -202,9 +202,6 @@
           <button id="stopCameraBtn" class="secondary" disabled>Stop camera</button>
         </div>
         <div id="reader"></div>
-        <p class="small">
-          Camera scanning usually needs a secure site (<b>HTTPS</b>) or <b>localhost</b>. Uploading an image works fully in the browser too.
-        </p>
         <div style="margin-top: 10px;">
           <label for="qrImage"><b>Or upload a QR image</b></label>
           <input id="qrImage" type="file" accept="image/*" />
@@ -452,4 +449,7 @@
     updateCounts();
   </script>
 </body>
+<footer>
+  <p>Contact developer at jimmy.pierrelouis@sclogistics.com for any issue</p>
+</footer>
 </html>
