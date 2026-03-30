@@ -1,352 +1,455 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>QR Serial Cleaner</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
-:root{--bg:#0a0a0f;--surface:#111118;--card:#16161f;--border:#2a2a3a;--accent:#00e5b0;--accent2:#7c3aed;--text:#e8e8f0;--muted:#6b6b85;--danger:#ff4d6d}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem 4rem;background-image:radial-gradient(ellipse 60% 40% at 80% 10%,rgba(124,58,237,.12) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 10% 80%,rgba(0,229,176,.08) 0%,transparent 60%)}
-header{text-align:center;margin-bottom:2.5rem}
-.badge{display:inline-block;font-family:'Space Mono',monospace;font-size:.7rem;letter-spacing:.2em;color:var(--accent);background:rgba(0,229,176,.08);border:1px solid rgba(0,229,176,.25);padding:.3rem .9rem;border-radius:999px;margin-bottom:1rem;text-transform:uppercase}
-h1{font-size:clamp(2rem,5vw,3rem);font-weight:800;line-height:1.1;letter-spacing:-.03em}
-h1 span{color:var(--accent)}
-header p{margin-top:.75rem;color:var(--muted);font-size:.95rem;max-width:480px;margin-left:auto;margin-right:auto}
-.pipeline{display:flex;flex-direction:column;gap:1.5rem;width:100%;max-width:640px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.75rem;position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,.02) 0%,transparent 60%);pointer-events:none}
-.card-label{font-family:'Space Mono',monospace;font-size:.65rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem}
-.step{width:20px;height:20px;border-radius:50%;background:var(--accent2);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.tab-row{display:flex;gap:.5rem;margin-bottom:1.2rem}
-.tab{flex:1;padding:.55rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Syne',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s}
-.tab.active{background:rgba(0,229,176,.1);border-color:var(--accent);color:var(--accent)}
-.video-container{position:relative;border-radius:10px;overflow:hidden;background:#000;display:none}
-.video-container video{width:100%;display:block;max-height:320px;object-fit:cover}
-.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.scan-box{width:200px;height:200px;border:2px solid var(--accent);border-radius:8px;box-shadow:0 0 0 9999px rgba(0,0,0,.5);position:relative}
-.scan-box::before,.scan-box::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--accent);border-style:solid}
-.scan-box::before{top:-2px;left:-2px;border-width:3px 0 0 3px}
-.scan-box::after{bottom:-2px;right:-2px;border-width:0 3px 3px 0}
-@keyframes scanline{0%{top:0}100%{top:100%}}
-.scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:0;animation:scanline 2s linear infinite}
-.placeholder{color:var(--muted);font-size:.85rem;text-align:center;padding:3rem 2rem;border:2px dashed var(--border);border-radius:10px}
-.upload-area{border:2px dashed var(--border);border-radius:10px;padding:2.5rem;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted);font-size:.9rem}
-.upload-area:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,176,.04)}
-.upload-icon{display:block;margin:0 auto .75rem;opacity:.5;font-size:2rem}
-#file-input{display:none}
-textarea{width:100%;min-height:100px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Mono',monospace;font-size:.78rem;padding:1rem;resize:vertical;outline:none;transition:border-color .2s;line-height:1.6}
-textarea:focus{border-color:var(--accent)}
-textarea::placeholder{color:var(--muted)}
-.hint{margin-top:.6rem;font-size:.75rem;color:var(--muted)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;border:none;transition:all .2s;width:100%;margin-top:1rem}
-.btn-primary{background:var(--accent);color:#000}
-.btn-primary:hover{background:#00ffc4;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,229,176,.25)}
-.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--text)}
-.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
-.btn-print{background:var(--accent2);color:#fff}
-.btn-print:hover{background:#9d5ff5;transform:translateY(-1px)}
-.btn-stop{background:#2a2a3a;color:var(--text)}
-#result-section{display:none}
-.result-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem}
-#qr-canvas{background:#fff;padding:16px;border-radius:12px;display:block;max-width:100%}
-.data-box{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem;font-family:'Space Mono',monospace;font-size:.75rem;color:var(--accent);word-break:break-all;line-height:1.7;white-space:pre-wrap}
-.action-row{display:flex;gap:.75rem;width:100%}
-.action-row .btn{flex:1;margin-top:0;font-size:.82rem}
-.status{display:flex;align-items:center;gap:.5rem;padding:.6rem 1rem;border-radius:8px;font-size:.8rem;font-family:'Space Mono',monospace;margin-top:.75rem}
-.status.ok{background:rgba(0,229,176,.08);border:1px solid rgba(0,229,176,.2);color:var(--accent)}
-.status.err{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.2);color:var(--danger)}
-.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.dot.g{background:var(--accent);box-shadow:0 0 8px var(--accent)}
-.dot.r{background:var(--danger)}
-#lib-status{font-size:.7rem;color:var(--muted);text-align:center;padding:.5rem;font-family:'Space Mono',monospace}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Serial Space Normalizer</title>
+  <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --line: #dce3ea;
+      --accent: #0b57d0;
+      --accent-2: #0842a0;
+      --ok: #137333;
+      --warn: #b06000;
+      --danger: #b3261e;
+    }
 
-/* PRINT */
-@media print{
-  body>*{display:none!important}
-  #print-zone{display:flex!important;position:fixed!important;inset:0!important;background:#fff!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:2rem!important}
-  #print-zone canvas{display:block!important}
-  #print-zone .plabel{display:block!important;font-family:monospace!important;font-size:11px!important;color:#222!important;margin-top:1rem!important;text-align:center!important;max-width:500px!important;word-break:break-all!important}
-}
-#print-zone{display:none}
-</style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+    .sub {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    h2 {
+      font-size: 18px;
+      margin: 0 0 12px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    button, input[type="file"]::file-selector-button {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+    }
+    button.secondary {
+      background: #eef3fd;
+      color: var(--accent);
+      border: 1px solid #c9d8f7;
+    }
+    button:hover, input[type="file"]::file-selector-button:hover {
+      filter: brightness(0.96);
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      background: #fff;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 14px;
+      line-height: 1.4;
+      font-family: Consolas, "Courier New", monospace;
+      background: #fbfcfe;
+    }
+    .status {
+      margin: 8px 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+    .status.show { display: block; }
+    .status.ok { background: #e8f5e9; color: var(--ok); }
+    .status.warn { background: #fff4e5; color: var(--warn); }
+    .status.err { background: #fdecea; color: var(--danger); }
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    #reader {
+      width: 100%;
+      min-height: 260px;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+    }
+    #qrOutput {
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .metric {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fbfcfe;
+    }
+    .pill b {
+      display: block;
+      font-size: 18px;
+      margin-top: 4px;
+    }
+    .footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .hidden { display: none !important; }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .no-print { display: none !important; }
+      .wrap { max-width: none; padding: 0; }
+      .card { border: 0; box-shadow: none; padding: 0; }
+      #printArea {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        margin-top: 24px;
+      }
+      #printArea h2, #printArea p {
+        margin: 0;
+      }
+    }
+  </style>
 </head>
 <body>
-
-<header>
-  <div class="badge">ASUS QR Tool</div>
-  <h1>QR Code <span>Cleaner</span></h1>
-  <p>Scan or upload a QR code with extra spaces between serial numbers — get a clean, print-ready QR instantly.</p>
-</header>
-
-<div class="pipeline">
-
-  <!-- STEP 1 -->
-  <div class="card">
-    <div class="card-label"><span class="step">1</span> Input — Scan, Upload or Paste</div>
-    <div class="tab-row">
-      <button class="tab active" onclick="switchTab('camera')">📷 Camera</button>
-      <button class="tab" onclick="switchTab('upload')">🖼 Upload</button>
-      <button class="tab" onclick="switchTab('manual')">⌨️ Manual</button>
+  <div class="wrap">
+    <div class="no-print">
+      <h1>QR Serial Space Normalizer</h1>
+      <p class="sub">
+        Scan a QR code, or upload a QR image, then convert all repeated spaces, tabs, and line breaks between serial numbers into a single space. The cleaned value is turned into a new QR code that you can print.
+      </p>
     </div>
 
-    <!-- Camera -->
-    <div id="tab-camera">
-      <div class="video-container" id="vcont">
-        <video id="vid" autoplay playsinline muted></video>
-        <div class="scan-overlay"><div class="scan-box"><div class="scanline"></div></div></div>
-        <canvas id="scan-canvas" style="display:none"></canvas>
+    <div class="grid">
+      <div class="card no-print">
+        <h2>1) Read the original QR code</h2>
+        <div class="controls">
+          <button id="startCameraBtn">Start camera scanner</button>
+          <button id="stopCameraBtn" class="secondary" disabled>Stop camera</button>
+        </div>
+        <div id="reader"></div>
+        <p class="small">
+          Camera scanning usually needs a secure site (<b>HTTPS</b>) or <b>localhost</b>. Uploading an image works fully in the browser too.
+        </p>
+        <div style="margin-top: 10px;">
+          <label for="qrImage"><b>Or upload a QR image</b></label>
+          <input id="qrImage" type="file" accept="image/*" />
+        </div>
+        <div id="statusBox" class="status"></div>
       </div>
-      <div class="placeholder" id="cam-ph">Click <strong style="color:var(--accent)">Start Camera</strong> to scan a QR code with your device camera.</div>
-      <button class="btn btn-primary" id="cam-btn" onclick="toggleCam()">▶ Start Camera</button>
-    </div>
 
-    <!-- Upload -->
-    <div id="tab-upload" style="display:none">
-      <div class="upload-area" onclick="document.getElementById('file-input').click()">
-        <span class="upload-icon">📂</span>
-        Click here to select a QR code image<br>
-        <small style="font-size:.75rem;opacity:.6">PNG · JPG · GIF · WebP · BMP</small>
+      <div class="card">
+        <h2>2) Clean the serial text and generate a new QR</h2>
+        <label for="rawText"><b>Original QR text</b></label>
+        <textarea id="rawText" placeholder="Scanned QR content will appear here..."></textarea>
+
+        <div class="footer-actions no-print">
+          <button id="normalizeBtn">Normalize to single spaces</button>
+          <button id="clearBtn" class="secondary">Clear</button>
+        </div>
+
+        <div class="metric no-print">
+          <div class="pill">
+            Original characters
+            <b id="originalCount">0</b>
+          </div>
+          <div class="pill">
+            Cleaned characters
+            <b id="cleanCount">0</b>
+          </div>
+        </div>
+
+        <label for="cleanText"><b>Cleaned QR text</b></label>
+        <textarea id="cleanText" placeholder="Normalized text will appear here..."></textarea>
+
+        <div id="printArea" class="card" style="margin-top: 16px; padding: 14px;">
+          <h2 style="margin-bottom: 8px;">New QR code</h2>
+          <div id="qrOutput"><span class="small">Your new QR code will appear here.</span></div>
+          <p id="printCaption" class="small" style="margin-top: 12px; text-align: center; word-break: break-word;"></p>
+        </div>
+
+        <div class="footer-actions no-print">
+          <button id="printBtn" disabled>Print QR code</button>
+          <button id="downloadBtn" class="secondary" disabled>Download PNG</button>
+        </div>
       </div>
-      <input type="file" id="file-input" accept="image/*" onchange="onFileChange(event)"/>
-    </div>
-
-    <!-- Manual -->
-    <div id="tab-manual" style="display:none">
-      <textarea id="manual-txt" placeholder="Paste your QR code text here, e.g.:&#10;SN-001   SN-002     SN-003   SN-004"></textarea>
-      <p class="hint">Paste the raw text content from your QR code directly.</p>
-      <button class="btn btn-primary" onclick="doManual()">→ Clean &amp; Generate QR</button>
-    </div>
-
-    <div id="status-wrap"></div>
-    <div id="lib-status">Loading QR scanner…</div>
-  </div>
-
-  <!-- STEP 2 -->
-  <div class="card" id="result-section">
-    <div class="card-label"><span class="step">2</span> Cleaned QR Code — Ready to Print</div>
-    <div class="result-inner">
-      <canvas id="qr-canvas"></canvas>
-      <div style="width:100%">
-        <p style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem;font-family:'Space Mono',monospace">CLEANED CONTENT</p>
-        <div class="data-box" id="data-box"></div>
-      </div>
-      <div class="action-row">
-        <button class="btn btn-secondary" onclick="doCopy()">📋 Copy Text</button>
-        <button class="btn btn-print" onclick="window.print()">🖨 Print QR</button>
-      </div>
-      <button class="btn btn-secondary" onclick="doReset()">↩ Start Over</button>
     </div>
   </div>
 
-</div>
+  <script>
+    let html5QrCode = null;
+    let qrGenerator = null;
+    let cameraRunning = false;
 
-<!-- Hidden print zone -->
-<div id="print-zone">
-  <canvas id="print-canvas"></canvas>
-  <span class="plabel" id="plabel"></span>
-</div>
+    const statusBox = document.getElementById('statusBox');
+    const rawText = document.getElementById('rawText');
+    const cleanText = document.getElementById('cleanText');
+    const qrOutput = document.getElementById('qrOutput');
+    const printCaption = document.getElementById('printCaption');
+    const originalCount = document.getElementById('originalCount');
+    const cleanCount = document.getElementById('cleanCount');
+    const startCameraBtn = document.getElementById('startCameraBtn');
+    const stopCameraBtn = document.getElementById('stopCameraBtn');
+    const normalizeBtn = document.getElementById('normalizeBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const printBtn = document.getElementById('printBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const qrImage = document.getElementById('qrImage');
 
-<!-- jsQR: QR code scanner -->
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js" onload="onJsQrLoaded()" onerror="onJsQrError()"></script>
+    function showStatus(message, type = 'ok') {
+      statusBox.textContent = message;
+      statusBox.className = `status show ${type}`;
+    }
 
-<!-- qrcode-generator: QR code builder -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qr.js" onload="onQrGenLoaded()" onerror="onQrGenError()"></script>
+    function updateCounts() {
+      originalCount.textContent = rawText.value.length;
+      cleanCount.textContent = cleanText.value.length;
+    }
 
-<script>
-// ── Library load tracking ──────────────────
-var jsQrOk = false, qrGenOk = false;
-function onJsQrLoaded(){ jsQrOk = true; checkLibs(); }
-function onQrGenLoaded(){ qrGenOk = true; checkLibs(); }
-function onJsQrError(){ document.getElementById('lib-status').textContent = '⚠ QR scanner library failed. Camera/Upload tabs unavailable — use Manual tab.'; document.getElementById('lib-status').style.color='#ff4d6d'; }
-function onQrGenError(){ document.getElementById('lib-status').textContent = '⚠ QR generator failed to load. Check internet connection.'; document.getElementById('lib-status').style.color='#ff4d6d'; }
-function checkLibs(){
-  if(jsQrOk && qrGenOk){
-    document.getElementById('lib-status').textContent = '✓ Ready';
-    document.getElementById('lib-status').style.color = '#00e5b0';
-    setTimeout(()=>{ document.getElementById('lib-status').style.display='none'; }, 2000);
-  }
-}
+    function normalizeSpaces(text) {
+      return text.replace(/\s+/g, ' ').trim();
+    }
 
-// ── Tab ───────────────────────────────────
-var currentTab = 'camera';
-function switchTab(t){
-  stopCam();
-  currentTab = t;
-  ['camera','upload','manual'].forEach(id=>{
-    document.getElementById('tab-'+id).style.display = id===t ? '' : 'none';
-  });
-  document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active', ['camera','upload','manual'][i]===t);
-  });
-  clearStatus();
-}
+    function renderNewQr(text) {
+      qrOutput.innerHTML = '';
+      if (!text) {
+        qrOutput.innerHTML = '<span class="small">Your new QR code will appear here.</span>';
+        printCaption.textContent = '';
+        printBtn.disabled = true;
+        downloadBtn.disabled = true;
+        return;
+      }
 
-// ── Camera ────────────────────────────────
-var stream = null, rafId = null;
-function toggleCam(){ stream ? stopCam() : startCam(); }
+      qrGenerator = new QRCode(qrOutput, {
+        text,
+        width: 256,
+        height: 256,
+        correctLevel: QRCode.CorrectLevel.M
+      });
 
-async function startCam(){
-  if(!jsQrOk){ showStatus('QR scanner library not loaded yet. Please wait or use Manual tab.','err'); return; }
-  try{
-    stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
-    var vid = document.getElementById('vid');
-    vid.srcObject = stream;
-    await vid.play();
-    document.getElementById('vcont').style.display = 'block';
-    document.getElementById('cam-ph').style.display = 'none';
-    var btn = document.getElementById('cam-btn');
-    btn.textContent = '⏹ Stop Camera';
-    btn.className = 'btn btn-stop';
-    tick();
-  } catch(e){
-    showStatus('Camera not available: '+e.message+'. Use Upload or Manual tab instead.','err');
-  }
-}
+      const preview = text.length > 180 ? text.slice(0, 180) + '…' : text;
+      printCaption.textContent = preview;
+      printBtn.disabled = false;
 
-function stopCam(){
-  if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
-  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
-  var vid=document.getElementById('vid'); vid.srcObject=null;
-  document.getElementById('vcont').style.display='none';
-  document.getElementById('cam-ph').style.display='';
-  var btn=document.getElementById('cam-btn');
-  btn.textContent='▶ Start Camera'; btn.className='btn btn-primary';
-}
+      setTimeout(() => {
+        const canvas = qrOutput.querySelector('canvas');
+        const img = qrOutput.querySelector('img');
+        downloadBtn.disabled = !(canvas || img);
+      }, 150);
+    }
 
-function tick(){
-  var vid=document.getElementById('vid');
-  if(!stream) return;
-  if(vid.readyState===vid.HAVE_ENOUGH_DATA){
-    var c=document.getElementById('scan-canvas');
-    c.width=vid.videoWidth; c.height=vid.videoHeight;
-    var ctx=c.getContext('2d');
-    ctx.drawImage(vid,0,0);
-    try{
-      var img=ctx.getImageData(0,0,c.width,c.height);
-      var code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
-      if(code){ stopCam(); process(code.data); return; }
-    }catch(e){}
-  }
-  rafId=requestAnimationFrame(tick);
-}
+    function processIncomingText(text) {
+      rawText.value = text || '';
+      cleanText.value = normalizeSpaces(rawText.value);
+      updateCounts();
+      renderNewQr(cleanText.value);
+      showStatus('QR code read successfully and converted to single spaces.', 'ok');
+    }
 
-// ── Upload ────────────────────────────────
-function onFileChange(evt){
-  var file=evt.target.files[0]; if(!file) return;
-  if(!jsQrOk){ showStatus('QR scanner not loaded. Try Manual tab.','err'); return; }
-  var fr=new FileReader();
-  fr.onload=function(e){
-    var img=new Image();
-    img.onload=function(){
-      var c=document.createElement('canvas');
-      c.width=img.naturalWidth; c.height=img.naturalHeight;
-      var ctx=c.getContext('2d');
-      ctx.drawImage(img,0,0);
-      var data=ctx.getImageData(0,0,c.width,c.height);
-      var code=jsQR(data.data,data.width,data.height,{inversionAttempts:'attemptBoth'});
-      if(code){ process(code.data); }
-      else{ showStatus('No QR code detected. Try a higher-res or clearer image.','err'); }
-    };
-    img.src=e.target.result;
-  };
-  fr.readAsDataURL(file);
-}
+    async function startCamera() {
+      if (typeof Html5Qrcode === 'undefined') {
+        showStatus('Scanner library did not load. Check your internet connection and reload the page.', 'err');
+        return;
+      }
 
-// ── Manual ────────────────────────────────
-function doManual(){
-  var v=document.getElementById('manual-txt').value;
-  if(!v.trim()){ showStatus('Please enter the QR text first.','err'); return; }
-  process(v);
-}
-
-// ── Core process ──────────────────────────
-function process(raw){
-  var cleaned = raw.replace(/\s+/g,' ').trim();
-
-  if(!qrGenOk){ showStatus('QR generator not loaded. Check your internet connection.','err'); return; }
-
-  // Generate QR using qrcode-generator
-  try{
-    var qr = qrcode(0,'M');
-    qr.addData(cleaned);
-    qr.make();
-
-    // Draw to canvas
-    var modules = qr.getModuleCount();
-    var scale = Math.max(2, Math.floor(240/modules));
-    var quiet = 4;
-    var sz = (modules + quiet*2) * scale;
-
-    // Main canvas (visible)
-    var canvas = document.getElementById('qr-canvas');
-    canvas.width = sz; canvas.height = sz;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle='#fff'; ctx.fillRect(0,0,sz,sz);
-    ctx.fillStyle='#000';
-    for(var r=0;r<modules;r++){
-      for(var c=0;c<modules;c++){
-        if(qr.isDark(r,c)){
-          ctx.fillRect((c+quiet)*scale,(r+quiet)*scale,scale,scale);
+      try {
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode('reader');
         }
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 240, height: 240 } },
+          (decodedText) => {
+            processIncomingText(decodedText);
+            stopCamera();
+          },
+          () => {}
+        );
+
+        cameraRunning = true;
+        startCameraBtn.disabled = true;
+        stopCameraBtn.disabled = false;
+        showStatus('Camera started. Point it at the original QR code.', 'ok');
+      } catch (err) {
+        showStatus('Could not start the camera. If this page is online, make sure it is opened over HTTPS. You can also upload a QR image instead.', 'warn');
+        console.error(err);
       }
     }
 
-    // Print canvas (hidden, used only on print)
-    var pc=document.getElementById('print-canvas');
-    var ps=Math.max(4, Math.floor(400/modules));
-    var psz=(modules+quiet*2)*ps;
-    pc.width=psz; pc.height=psz;
-    var pctx=pc.getContext('2d');
-    pctx.fillStyle='#fff'; pctx.fillRect(0,0,psz,psz);
-    pctx.fillStyle='#000';
-    for(var r=0;r<modules;r++){
-      for(var c=0;c<modules;c++){
-        if(qr.isDark(r,c)){
-          pctx.fillRect((c+quiet)*ps,(r+quiet)*ps,ps,ps);
-        }
+    async function stopCamera() {
+      if (!html5QrCode || !cameraRunning) return;
+      try {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+      } catch (err) {
+        console.warn(err);
+      } finally {
+        cameraRunning = false;
+        startCameraBtn.disabled = false;
+        stopCameraBtn.disabled = true;
       }
     }
-    document.getElementById('plabel').textContent = cleaned;
 
-  } catch(e){
-    showStatus('QR generation error: '+e.message,'err'); return;
-  }
+    async function readFromImageFile(file) {
+      if (!file) return;
+      if (typeof Html5Qrcode === 'undefined') {
+        showStatus('Scanner library did not load. Check your internet connection and reload the page.', 'err');
+        return;
+      }
 
-  document.getElementById('data-box').textContent = cleaned;
-  document.getElementById('result-section').style.display='';
-  document.getElementById('result-section').scrollIntoView({behavior:'smooth',block:'start'});
-  showStatus('✓ Done! QR generated with single-spaced serials.','ok');
-}
+      try {
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode('reader');
+        }
+        await stopCamera();
+        const decodedText = await html5QrCode.scanFile(file, true);
+        processIncomingText(decodedText);
+      } catch (err) {
+        showStatus('I could not read a QR code from that image. Try a clearer image or use the camera scanner.', 'err');
+        console.error(err);
+      }
+    }
 
-// ── Helpers ───────────────────────────────
-function doCopy(){
-  var t=document.getElementById('data-box').textContent;
-  navigator.clipboard.writeText(t).then(()=>showStatus('Copied!','ok'));
-}
+    function downloadPng() {
+      const canvas = qrOutput.querySelector('canvas');
+      const img = qrOutput.querySelector('img');
+      let url = '';
 
-function doReset(){
-  stopCam();
-  document.getElementById('result-section').style.display='none';
-  document.getElementById('data-box').textContent='';
-  document.getElementById('manual-txt').value='';
-  document.getElementById('file-input').value='';
-  clearStatus();
-  switchTab('camera');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
+      if (canvas) {
+        url = canvas.toDataURL('image/png');
+      } else if (img) {
+        url = img.src;
+      }
 
-function showStatus(msg,type){
-  document.getElementById('status-wrap').innerHTML=
-    '<div class="status '+type+'"><span class="dot '+(type==='ok'?'g':'r')+'"></span>'+msg+'</div>';
-}
-function clearStatus(){ document.getElementById('status-wrap').innerHTML=''; }
-</script>
+      if (!url) return;
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'normalized-qr-code.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    startCameraBtn.addEventListener('click', startCamera);
+    stopCameraBtn.addEventListener('click', stopCamera);
+
+    qrImage.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      await readFromImageFile(file);
+    });
+
+    normalizeBtn.addEventListener('click', () => {
+      cleanText.value = normalizeSpaces(rawText.value);
+      updateCounts();
+      renderNewQr(cleanText.value);
+      showStatus('Text normalized and QR code regenerated.', 'ok');
+    });
+
+    clearBtn.addEventListener('click', async () => {
+      rawText.value = '';
+      cleanText.value = '';
+      updateCounts();
+      renderNewQr('');
+      qrImage.value = '';
+      showStatus('Cleared.', 'ok');
+      await stopCamera();
+    });
+
+    rawText.addEventListener('input', () => {
+      updateCounts();
+    });
+
+    cleanText.addEventListener('input', () => {
+      updateCounts();
+      renderNewQr(cleanText.value.trim());
+    });
+
+    printBtn.addEventListener('click', () => window.print());
+    downloadBtn.addEventListener('click', downloadPng);
+
+    window.addEventListener('beforeunload', () => {
+      if (html5QrCode && cameraRunning) {
+        html5QrCode.stop().catch(() => {});
+      }
+    });
+
+    updateCounts();
+  </script>
 </body>
-
-    <footer>
-  <p>Contact developer at jimmy.pierrelouis@sclogistics.com for any issue</p>
-</footer>
-  
 </html>
